@@ -2,8 +2,9 @@
 
 A .NET client library for the **Finnhub news REST API** — a **data-only** news source.
 
-> **Status: scaffolding.** No implementation yet — this repo currently holds the requirements only. Start at
-> [`PRD.md`](PRD.md); the layout below is the plan, not the present.
+> **Status: the news client has shipped** (gh#439). `FinnhubNewsClient.GetMarketNewsAsync` fetches general
+> market news over REST, with its own test suite. Company-news (per-symbol) is not built yet — see *Planned
+> layout*.
 
 ## What this is
 
@@ -31,17 +32,21 @@ which translates Finnhub's payload into the consumer's venue-neutral `NewsItem`.
 flagged unverified** by the consumer's engineering guide, so the first live pass is also the first real check of
 it.
 
-## Planned layout
+## Layout
 
 ```
 MarqSpec.Client.Finnhub/
-  MarqSpec.Client.Finnhub/          # the client library (net10.0)
-    FinnhubNewsClient.cs            # the typed REST client — GetCompanyNewsAsync / GetMarketNewsAsync
-    FinnhubOptions.cs              # API key + base URL; key from config/env, never in source
-    Models/                        # the raw payload records (news article, category)
-  MarqSpec.Client.Finnhub.sln
+  MarqSpec.Client.Finnhub/            # the client library (net10.0)
+    FinnhubNewsClient.cs             # the typed REST client — GetMarketNewsAsync (shipped)
+    FinnhubOptions.cs               # API key + base URL; key from config/env, never in source
+    FinnhubNewsArticle.cs           # the raw payload record
+  MarqSpec.Client.Finnhub.Tests/     # the client's own tests (stubbed transport, no key/network)
+  MarqSpec.Client.Finnhub.slnx
   PRD.md · README.md · LICENSE
 ```
+
+**Not yet built:** `GetCompanyNewsAsync` (per-symbol news) — the trading-copilot adapter maps
+`INewsSource.GetNewsAsync` to general market news; a symbol-scoped feed is a later addition.
 
 ## Why a separate repo
 
