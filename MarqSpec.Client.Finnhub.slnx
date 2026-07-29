@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MarqSpec.Client.Finnhub.Tests/MarqSpec.Client.Finnhub.Tests.csproj" />
+  <Project Path="MarqSpec.Client.Finnhub/MarqSpec.Client.Finnhub.csproj" />
+</Solution>
