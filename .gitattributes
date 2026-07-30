@@ -1,0 +1,13 @@
+# Normalize line endings to LF in the repo and on checkout — avoids CRLF/LF churn on Windows.
+# Without this, a Windows checkout gets CRLF while the repo stores LF, and `dotnet format` (which defaults to the
+# host's line ending) reports violations that CI never sees — a local check that disagrees with the gate is worse
+# than no local check at all.
+* text=auto eol=lf
+
+# Binary types — never normalize
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
