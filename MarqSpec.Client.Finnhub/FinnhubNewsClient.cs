@@ -24,7 +24,7 @@ public interface IFinnhubNewsClient
 /// </remarks>
 public sealed class FinnhubNewsClient : IFinnhubNewsClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly FinnhubOptions _options;
@@ -60,7 +60,7 @@ public sealed class FinnhubNewsClient : IFinnhubNewsClient
         response.EnsureSuccessStatusCode();
 
         IReadOnlyList<FinnhubNewsArticle>? articles =
-            await response.Content.ReadFromJsonAsync<IReadOnlyList<FinnhubNewsArticle>>(JsonOptions, cancellationToken);
+            await response.Content.ReadFromJsonAsync<IReadOnlyList<FinnhubNewsArticle>>(_jsonOptions, cancellationToken);
 
         return articles ?? [];
     }

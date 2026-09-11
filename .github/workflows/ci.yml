@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, staging, main]
+  push:
+    branches: [develop, staging, main]
+  merge_group:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check documentation links
+        run: ./scripts/check-doc-links.sh
+
+  build-test:
+    name: build & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore MarqSpec.Client.Finnhub.slnx
+
+      - name: Format
+        run: dotnet format MarqSpec.Client.Finnhub.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build MarqSpec.Client.Finnhub.slnx --configuration Release --no-restore
+
+      - name: Unit tests
+        run: >-
+          dotnet test MarqSpec.Client.Finnhub.Tests/MarqSpec.Client.Finnhub.Tests.csproj
+          --configuration Release --no-build
+          --logger "trx;LogFileName=unit-tests.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: ./TestResults
+          retention-days: 7
+
+  integration-test:
+    name: integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore MarqSpec.Client.Finnhub.slnx
+
+      - name: Build
+        run: dotnet build MarqSpec.Client.Finnhub.slnx --configuration Release --no-restore
+
+      - name: Integration tests (loopback, no credentials)
+        run: >-
+          dotnet test MarqSpec.Client.Finnhub.IntegrationTests/MarqSpec.Client.Finnhub.IntegrationTests.csproj
+          --configuration Release --no-build --filter "Category!=Live"
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory ./TestResults
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: ./TestResults
+          retention-days: 7
+
+  # Measured 2026-09-11 on the unit suite: 54.2% line / 59.4% branch. Floor is just under.
+  coverage:
+    name: coverage
+    needs: build-test
+    runs-on: ubuntu-latest
+    env:
+      MINIMUM_LINE_COVERAGE: 53
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+          path: ./TestResults
+
+      - name: Enforce the coverage floor
+        shell: python3 {0}
+        run: |
+          import glob, os, sys, xml.etree.ElementTree as ET
+
+          floor = int(os.environ["MINIMUM_LINE_COVERAGE"])
+          reports = glob.glob("TestResults/**/coverage.cobertura.xml", recursive=True)
+
+          if not reports:
+              found = "\n".join(sorted(glob.glob("TestResults/**/*", recursive=True))[:40]) or "(nothing)"
+              print("::error::No cobertura report found. The unit test job must run with "
+                    '--collect:"XPlat Code Coverage".')
+              print(f"Artifact contained:\n{found}")
+              sys.exit(1)
+
+          root = ET.parse(reports[0]).getroot()
+          line = float(root.get("line-rate", 0)) * 100
+          branch = float(root.get("branch-rate", 0)) * 100
+
+          summary = f"Line coverage {line:.1f}% (floor {floor}%) · branch {branch:.1f}%"
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(f"### {summary}\n")
+
+          if line < floor:
+              print(f"::error::Line coverage {line:.1f}% is below the {floor}% floor.")
+              sys.exit(1)
+
+  pack:
+    name: pack
+    needs: [build-test, integration-test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Pack
+        run: >-
+          dotnet pack MarqSpec.Client.Finnhub/MarqSpec.Client.Finnhub.csproj
+          --configuration Release --output ./artifacts
+
+      - name: Show the resolved version
+        run: ls -1 ./artifacts
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          retention-days: 14
