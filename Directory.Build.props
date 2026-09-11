@@ -11,8 +11,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!--
-      The PRD asks for analyzer warnings at zero (R-11.4). Nothing enforced it, so "at zero" was a
-      hope. This is what makes it true.
+      Warnings-as-errors so "clean" is a property of the build, not a hope.
     -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -21,7 +20,7 @@
     <!--
       Deterministic, source-linked builds. SourceLink ships in the SDK since .NET 8, so no
       PackageReference is needed — this library's dependency surface is part of its public contract
-      (R-10.5) and is kept small on purpose.
+      and is kept small on purpose.
     -->
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>

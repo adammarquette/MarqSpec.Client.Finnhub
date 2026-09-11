@@ -23,27 +23,30 @@ updated in the same PR.
 ## What to look for
 
 The substantive checklist is [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md) — **that
-file owns it; do not restate it here.** It leads with idempotency at the order boundary because that is the
-failure with the worst blast radius in this repo, then covers fail-closed defaults, the decides-nothing
-boundary, secrets in a public repository, money and time, the conventions that look odd and are load-bearing,
-tests, and the same-PR documentation rule. It keeps its Copilot-specific name and stays in `.github/` because
-GitHub's reviewer reads that exact path; the content is tool-neutral.
+file owns it; do not restate it here.** It leads with a leaked token or a swallowed provider error because
+that is the blast radius here, then covers fail-closed defaults, the decides-nothing boundary, secrets in a
+public repository, money and time, the conventions that look odd and are load-bearing, tests, and the
+same-PR documentation rule. It keeps its Copilot-specific name and stays in `.github/` because GitHub's
+reviewer reads that exact path; the content is tool-neutral.
 
 ## The question this repo's reviews exist to ask
 
-Before anything else, on any diff touching transport, resilience, or orders:
+Before anything else, on any diff touching auth, transport, or errors:
 
-> **Can this change cause an order to be placed twice, or cause a live order to be reported as not placed?**
+> **Can this change put the API token in a REST URL, a log line, or an exception message — or swallow a
+> provider error the consumer needs in order to degrade?**
 
 Everything else in the checklist is downstream of that. A change that cannot answer it clearly is not ready,
-regardless of how clean the rest reads.
+regardless of how clean the rest reads. The trade websocket's `?token=` connect query is Finnhub's handshake
+(R-8), not an instance of this failure.
 
 ## How to report
 
 - **One finding, one concrete failure scenario** — "inputs X in state Y produce wrong output Z." A finding you
   cannot make fail is a question; ask it as one.
-- **Rank by blast radius:** order duplication or loss → wrong data returned to the consumer → fail-open and
-  unchecked input → missing tests on transport paths → stale or overclaiming documentation → everything else.
+- **Rank by blast radius:** leaked token or swallowed provider error → wrong data returned to the consumer →
+  fail-open and unchecked input → missing tests on transport paths → stale or overclaiming documentation →
+  everything else.
 - **Name the pattern, not just the instance.** One fail-open switch is a bug; the third in a series is a habit,
   and saying so is what stops the fourth.
 - **Few, well-evidenced.** Padding real findings with style notes trains the author to skim. Formatting is
@@ -74,5 +77,5 @@ regardless of how clean the rest reads.
 ## Definition of done
 
 Every finding names a concrete failure · ranked by blast radius · repeated patterns called out as patterns · no
-formatting noise · PR-body claims verified against the diff · the order-duplication question explicitly answered
+formatting noise · PR-body claims verified against the diff · the token/error question explicitly answered
 when it applies · a formal verdict submitted · nothing merged, closed, or pushed.

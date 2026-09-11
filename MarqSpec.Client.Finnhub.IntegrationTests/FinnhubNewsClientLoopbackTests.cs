@@ -8,7 +8,7 @@ namespace MarqSpec.Client.Finnhub.IntegrationTests;
 
 /// <summary>
 /// News REST against a loopback listener — no Finnhub credential, no public network.
-/// Asserts what the listener recorded (R-8: token is a header, never a URL).
+/// Asserts what the listener recorded (R-8 REST: token is a header, never a URL).
 /// </summary>
 public sealed class FinnhubNewsClientLoopbackTests
 {

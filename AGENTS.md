@@ -50,8 +50,9 @@ it before starting, and add dated entries only when nothing formal fits.
 ## The non-negotiables
 
 - **No secrets in source.** Credentials arrive through the Options pattern and environment; never a literal,
-  never a tracked `appsettings.json`, never a log line. The API token authenticates via the
-  `X-Finnhub-Token` header, never a query-string parameter. Assume this repository is public.
+  never a tracked `appsettings.json`, never a log line. REST authenticates via `X-Finnhub-Token`, never a
+  query-string parameter. The trade websocket puts `?token=` on the connect URL because that is Finnhub's
+  handshake (R-8) — do not log it, and do not move it onto a header. Assume this repository is public.
 - **The library transmits; it does not decide.** Policy, limits and orchestration belong to the consumer. A
   policy check added here sits *below* the consumer's own gate, in a different repository, where that gate can
   neither see nor audit it.

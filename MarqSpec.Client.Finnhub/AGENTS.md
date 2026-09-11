@@ -34,8 +34,9 @@ ships the XML, so a missing comment is a build error, not a style note.
 - **It does not decide.** Policy, limits, eligibility and orchestration belong to the consumer. Rejecting a
   malformed request or a missing credential is transport, not policy, and is fine.
 - **It does not retry.** This surface is read-only. A timeout is an unknown outcome the caller owns.
-- **It does not log credentials.** Not the key, not a bearer token, not a URL that contains them. The token
-  travels as `X-Finnhub-Token`, never a query string.
+- **It does not log credentials.** Not the key, not a bearer token, not a URL that contains them. REST
+  uses `X-Finnhub-Token`. The trade websocket connect URL carries `?token=` because Finnhub's handshake
+  requires it (R-8) — do not log that URI.
 
 ## Wire models
 
