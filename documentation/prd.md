@@ -45,8 +45,10 @@ equities/indices price feed behind the consumer's `IContextMarketDataSource` sea
 - **R-7 net10.0, async, injected transport.** `CancellationToken` on every public async method; `HttpClient`
   injected (not newed); JSON via `System.Text.Json`.
 - **R-8 Auth from configuration.** The API token is supplied by the caller (`FinnhubOptions`), sourced from the
-  consumer's config/environment. **No secret is ever committed here.** The token travels as `X-Finnhub-Token`,
-  never a query-string parameter.
+  consumer's config/environment. **No secret is ever committed here.** REST authenticates with the
+  `X-Finnhub-Token` header, never a query-string parameter. The trade websocket authenticates the way
+  Finnhub's published handshake requires: `?token=` on the connect URL. Do not "fix" that path onto a
+  header — it would break the stream. Do not put the token in a *REST* URL.
 - **R-9 Free-tier aware.** Rate-limit responses surface as typed errors (`FinnhubRateLimitException` on the
   quote path; HTTP 429 on news) rather than being swallowed, so the consumer can degrade.
 - **R-10 Errors are the caller's to handle.** Transport faults and non-success statuses surface; the client

@@ -38,7 +38,9 @@ below the host's gate and could not be audited there.
 subscription cap surfaces `FinnhubSubscriptionLimitException`. The default transport is
 `ClientWebSocketTransport`; tests substitute a stub.
 
-Token never appears in a URL on any of these paths (R-8).
+REST never puts the token in a URL (R-8). The trade websocket does: Finnhub's published handshake is
+`{WebsocketUrl}?token=…` on connect. That split is load-bearing — a later change that "makes auth
+consistent" by moving the WS token into a header will silently stop ticks.
 
 ## Failure semantics
 
@@ -66,6 +68,7 @@ Token never appears in a URL on any of these paths (R-8).
 ## Known shape issues
 
 - News 429s are not `FinnhubRateLimitException`. Quote 429s are. Consumers must handle both.
+- The trade websocket authenticates with `?token=` on the connect URL. REST does not. See R-8.
 - There is no `AddFinnhub…` extension. Adding one is a surface change, not a cleanup.
 - Company news (R-2) is specified and absent.
 - The library is `net10.0` only. Multi-targeting would be a new ADR, not an assumption of the template.

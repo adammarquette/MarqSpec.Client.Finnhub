@@ -9,8 +9,8 @@ body:
       value: |
         Bug fixes are **regression-first**: the fix ships with a test that failed before it.
 
-        If the bug is on an order, position or hub-reconnect path, add the **`safety-critical`** label — that
-        pins the work to a `Work Estimate` of 4 or higher.
+        If the bug leaks the API token or swallows a provider error the consumer needs in order to degrade,
+        add the **`safety-critical`** label — that pins the work to a `Work Estimate` of 4 or higher.
   - type: textarea
     id: observed
     attributes:
@@ -29,7 +29,7 @@ body:
     id: repro
     attributes:
       label: Reproduction
-      description: Smallest sequence that shows it. Say whether it reproduces against the fake gateway.
+      description: Smallest sequence that shows it. Say whether it reproduces against a stubbed transport or a loopback listener.
       value: |
         1.
         2.
@@ -44,8 +44,8 @@ body:
       options:
         - Cosmetic or developer-facing only
         - Wrong data returned to the consumer
-        - Order, position or account state can diverge from the venue
-        - An order can be placed, duplicated, or lost
+        - A provider error is swallowed so the consumer cannot degrade
+        - The API token can appear in a REST URL, a log line, or an exception message
     validations:
       required: true
   - type: input

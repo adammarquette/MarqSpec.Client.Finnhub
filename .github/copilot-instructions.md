@@ -14,7 +14,10 @@ duplicated order. Everything else is downstream of that.
 
 ## Auth and unknown outcomes
 
-- The token travels as `X-Finnhub-Token`, never a query-string parameter.
+- REST: the token travels as `X-Finnhub-Token`, never a query-string parameter.
+- Websocket: Finnhub's handshake is `{WebsocketUrl}?token=…`. That is the published connect path, not a
+  leak to "fix" onto a header. A change that removes `?token=` from the connect URL is a finding — it
+  breaks the stream. Logging that URI is also a finding.
 - **A timeout is not a failure — it is an unknown outcome.** Do not report "no data" for a request that may
   have succeeded.
 - This library does not retry. Anything added to a retry set needs a stated reason why resending is safe.
