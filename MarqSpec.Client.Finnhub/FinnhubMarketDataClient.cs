@@ -42,7 +42,7 @@ public interface IFinnhubMarketDataClient
 /// </remarks>
 public sealed class FinnhubMarketDataClient : IFinnhubMarketDataClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly FinnhubOptions _options;
@@ -86,7 +86,7 @@ public sealed class FinnhubMarketDataClient : IFinnhubMarketDataClient
 
         await using Stream body = await response.Content.ReadAsStreamAsync(cancellationToken);
         QuotePayload? payload = await JsonSerializer.DeserializeAsync<QuotePayload>(
-            body, JsonOptions, cancellationToken);
+            body, _jsonOptions, cancellationToken);
 
         return payload is null
             ? throw new HttpRequestException($"Finnhub returned no quote body for '{symbol}'.")

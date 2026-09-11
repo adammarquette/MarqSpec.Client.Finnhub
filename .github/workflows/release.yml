@@ -1,0 +1,97 @@
+name: Release NuGet Package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  # Pauses until the "production" environment's required reviewers approve, before anything is built or
+  # published. A published package cannot be unpublished.
+  gate:
+    name: Await release approval
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Release approved
+        run: echo "Release approved — proceeding to build and publish."
+
+  publish:
+    name: Build and publish NuGet package
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # MinVer needs tag history. Without this the package would be stamped 0.0.0-alpha.0 and pushed to
+          # nuget.org under that version — silently, because a shallow clone is not an error (ADR-0001).
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore MarqSpec.Client.Finnhub.slnx
+
+      - name: Build
+        run: dotnet build MarqSpec.Client.Finnhub.slnx --configuration Release --no-restore
+
+      # No credentials. Category=Live is excluded so the release path cannot touch the real API.
+      - name: Tests
+        run: >-
+          dotnet test MarqSpec.Client.Finnhub.slnx --configuration Release --no-build
+          --filter "Category!=Live"
+
+      - name: Verify the tag matches the package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Tag '$TAG' is not vMAJOR.MINOR.PATCH. See CONTRIBUTING.md > Releases."
+            exit 1
+          fi
+
+      # No -p:PackageVersion. The tag IS the version, resolved by MinVer from the checked-out ref — which is
+      # what removes the drift that had the csproj claiming 1.0.6 against a released v1.0.5.
+      - name: Pack
+        run: >-
+          dotnet pack MarqSpec.Client.Finnhub/MarqSpec.Client.Finnhub.csproj
+          --configuration Release --no-build --output ./artifacts
+
+      - name: Confirm the resolved version and symbols
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          ls -1 ./artifacts
+          expected="MarqSpec.Client.Finnhub.${TAG#v}.nupkg"
+
+          if [ ! -f "./artifacts/$expected" ]; then
+            echo "::error::Expected $expected but MinVer resolved something else. Is the tag on this commit?"
+            exit 1
+          fi
+          if [ ! -f "./artifacts/MarqSpec.Client.Finnhub.${TAG#v}.snupkg" ]; then
+            echo "::error::No symbol package produced."
+            exit 1
+          fi
+
+      - name: Push to NuGet.org
+        run: >-
+          dotnet nuget push "./artifacts/*.nupkg"
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg

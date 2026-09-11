@@ -43,7 +43,7 @@ public interface IFinnhubQuoteStream : IDisposable
 /// </remarks>
 public sealed class FinnhubQuoteStream : IFinnhubQuoteStream
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly Func<IFinnhubWebSocket> _socketFactory;
     private readonly FinnhubOptions _options;
@@ -118,7 +118,7 @@ public sealed class FinnhubQuoteStream : IFinnhubQuoteStream
         if (_socket is { IsOpen: true })
         {
             await _socket.SendAsync(
-                JsonSerializer.Serialize(new { type = "unsubscribe", symbol }, JsonOptions), cancellationToken);
+                JsonSerializer.Serialize(new { type = "unsubscribe", symbol }, _jsonOptions), cancellationToken);
         }
     }
 
@@ -175,7 +175,7 @@ public sealed class FinnhubQuoteStream : IFinnhubQuoteStream
         FinnhubTradeEnvelope? envelope;
         try
         {
-            envelope = JsonSerializer.Deserialize<FinnhubTradeEnvelope>(frame, JsonOptions);
+            envelope = JsonSerializer.Deserialize<FinnhubTradeEnvelope>(frame, _jsonOptions);
         }
         catch (JsonException)
         {
@@ -233,7 +233,7 @@ public sealed class FinnhubQuoteStream : IFinnhubQuoteStream
     }
 
     private static Task SendSubscribeAsync(IFinnhubWebSocket socket, string symbol, CancellationToken cancellationToken) =>
-        socket.SendAsync(JsonSerializer.Serialize(new { type = "subscribe", symbol }, JsonOptions), cancellationToken);
+        socket.SendAsync(JsonSerializer.Serialize(new { type = "subscribe", symbol }, _jsonOptions), cancellationToken);
 
     private sealed record FinnhubTradeEnvelope(string? Type, IReadOnlyList<FinnhubTradePayload>? Data);
 

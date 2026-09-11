@@ -1,58 +1,69 @@
 # MarqSpec.Client.Finnhub
 
-A .NET client library for the **Finnhub news REST API** — a **data-only** news source.
+A typed, async .NET client for **Finnhub's news REST API** and **equities/indices market-data** (quote REST +
+trade websocket). It is **data-only**: it discovers news and prices, and does **not** place orders, hold
+accounts, or execute anything.
 
-> **Status: the news client has shipped** (gh#439). `FinnhubNewsClient.GetMarketNewsAsync` fetches general
-> market news over REST, with its own test suite. Company-news (per-symbol) is not built yet — see *Planned
-> layout*.
+> **Status:** news REST (`GetMarketNewsAsync`) and the market-data surface (quote REST + trade websocket) have
+> shipped. Company-news (per-symbol) is not built yet.
 
 ## What this is
 
-A typed, async .NET client for **Finnhub's news surface** — the market/company news REST endpoints — returning
-raw provider payloads for a consumer to normalize. It is **data-only**: it discovers and fetches news, and does
-**not** place orders, hold accounts, or execute anything. That is the point of the R-17 split between an
-*execution venue* (ProjectX) and a *data source* (this).
-
-It is a **sibling** of [`MarqSpec.Client.ProjectX`](https://github.com/adammarquette/MarqSpec.Client.ProjectX)
-and [`MarqSpec.Client.Tradovate`](https://github.com/adammarquette/MarqSpec.Client.Tradovate) — parallel in shape
+A sibling of [`MarqSpec.Client.ProjectX`](https://github.com/adammarquette/MarqSpec.Client.ProjectX) and
+[`MarqSpec.Client.Tradovate`](https://github.com/adammarquette/MarqSpec.Client.Tradovate) — parallel in shape
 and convention, deliberately **different in signatures**. The clients must **not** share a public interface; the
-venue-neutral symmetry lives in the consumer's `INewsSource` / `ITradingVenue` seams, not here.
+venue-neutral symmetry lives in the consumer's `INewsSource` / `IContextMarketDataSource` / `ITradingVenue`
+seams, not here.
 
-**Scope note.** Finnhub also exposes an equities/indices **market-data** surface (websocket cross-asset context,
-SPY ↔ ES). That is a **separate concern** and **not** part of this repo's first cut — see the trading-copilot
-issue. This client covers **news** only.
-
-**Tracking issue:** [`adammarquette/trading-copilot#383`](https://github.com/adammarquette/trading-copilot/issues/383)
+**Tracking issues:** news scaffold
+[`trading-copilot#383`](https://github.com/adammarquette/trading-copilot/issues/383), news flow
+[`#439`](https://github.com/adammarquette/trading-copilot/issues/439), market-data surface
+[`#495`](https://github.com/adammarquette/trading-copilot/issues/495). Repo standards backfill:
+[`#1168`](https://github.com/adammarquette/trading-copilot/issues/1168) (of
+[`#701`](https://github.com/adammarquette/trading-copilot/issues/701)).
 
 ## Consumed by
 
 The [trading-copilot](https://github.com/adammarquette/trading-copilot) pins this repo as a git submodule under
-`external/` and wraps it in a `FinnhubNewsSource : INewsSource` adapter (in a `.Integration.Finnhub` project),
-which translates Finnhub's payload into the consumer's venue-neutral `NewsItem`. **Free-tier data quality is
-flagged unverified** by the consumer's engineering guide, so the first live pass is also the first real check of
-it.
+`external/` and wraps it in `.Integration.Finnhub` adapters (`FinnhubNewsSource`, `FinnhubMarketDataSource`).
+**Free-tier data quality is flagged unverified** by the consumer's engineering guide, so a live pass is also a
+real check of it.
 
 ## Layout
 
 ```
 MarqSpec.Client.Finnhub/
-  MarqSpec.Client.Finnhub/            # the client library (net10.0)
-    FinnhubNewsClient.cs             # the typed REST client — GetMarketNewsAsync (shipped)
-    FinnhubOptions.cs               # API key + base URL; key from config/env, never in source
-    FinnhubNewsArticle.cs           # the raw payload record
-  MarqSpec.Client.Finnhub.Tests/     # the client's own tests (stubbed transport, no key/network)
+  MarqSpec.Client.Finnhub/                 # the client library (net10.0)
+    FinnhubNewsClient.cs                   # news REST — GetMarketNewsAsync
+    FinnhubMarketDataClient.cs             # quote REST — GetQuoteAsync
+    FinnhubQuoteStream.cs                  # trade websocket over IFinnhubWebSocket
+    FinnhubOptions.cs                      # API key + base URL; key from config/env, never in source
+    FinnhubNewsArticle.cs · FinnhubTrade.cs
+  MarqSpec.Client.Finnhub.Tests/           # stubbed transport, no key/network
+  MarqSpec.Client.Finnhub.IntegrationTests/  # loopback listener, no credentials
   MarqSpec.Client.Finnhub.slnx
-  PRD.md · README.md · LICENSE
+  documentation/                           # PRD, architecture, ADRs, agent contracts
+  CONTRIBUTING.md · AGENTS.md · LICENSE
 ```
 
-**Not yet built:** `GetCompanyNewsAsync` (per-symbol news) — the trading-copilot adapter maps
-`INewsSource.GetNewsAsync` to general market news; a symbol-scoped feed is a later addition.
+**Not yet built:** `GetCompanyNewsAsync` (per-symbol news).
+
+## Build
+
+```bash
+dotnet build MarqSpec.Client.Finnhub.slnx
+dotnet format MarqSpec.Client.Finnhub.slnx --verify-no-changes
+dotnet test MarqSpec.Client.Finnhub.slnx --filter "Category!=Live"
+```
+
+How we work: [`CONTRIBUTING.md`](CONTRIBUTING.md). Agent contracts: [`AGENTS.md`](AGENTS.md). Route docs from
+[`documentation/README.md`](documentation/README.md).
 
 ## Why a separate repo
 
-Vendored client code lives outside the consumer's `Directory.Build.props` (net10-only, warnings-as-errors), so a
-third-party client is not forced to satisfy the app's house rules, and its release cadence is its own. This is
-the established venue-client pattern (ProjectX, Tradovate, Webull).
+Vendored client code lives outside the consumer's `Directory.Build.props`, so a third-party client is not forced
+to satisfy the app's house rules, and its release cadence is its own. This is the established venue-client
+pattern (ProjectX, Tradovate, Webull).
 
 ## License
 

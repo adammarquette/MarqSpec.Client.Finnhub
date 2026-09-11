@@ -1,0 +1,56 @@
+<Project>
+
+  <!--
+    Central Package Management — .csproj files carry no versions.
+
+    This exists because they drift otherwise. In the repo this template came from, the library pinned
+    Microsoft.Extensions.* at 9.0.3 while two console apps pulled 10.0.0 of the same packages, which is how a
+    downgrade warning appears the moment they compose.
+
+    A library's dependency surface is part of its public contract: anything compiling against this assembly
+    inherits a version conflict you create here. Adding a dependency needs a line in the PR saying why, and it
+    must support every target framework you declare — not merely restore.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Build">
+    <!-- Versioning from the git tag. Build-time only; never a runtime dependency. -->
+    <PackageVersion Include="MinVer" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Configuration, options, logging">
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test stack">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="FakeItEasy" Version="8.0.0" />
+    <!-- LICENSE CAP: FluentAssertions v8+ is commercially licensed. Do not bump past 7.x. -->
+    <PackageVersion Include="FluentAssertions" Version="6.12.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+  <!--
+    TRANSPORT PACKAGES ARE DELIBERATELY ABSENT — a template should not presume how you talk to anything.
+
+    For a worked HTTP + WebSocket client, the reference implementation is MarqSpec.Client.ProjectX, which adds
+    Refit, Refit.HttpClientFactory, Microsoft.Extensions.Http, Microsoft.Extensions.Http.Resilience,
+    Polly.Core and Microsoft.AspNetCore.SignalR.Client — and, importantly, an ADR explaining the resilience
+    policy those combine into.
+  -->
+
+</Project>
